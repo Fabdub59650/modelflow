@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { toast, openDialog, confirmDialog } from '../ui.js';
 import { STATUS, STATUS_KEYS, SOURCE, SOURCE_KEYS, escapeHtml, fullPath, copyText, fold } from '../format.js';
 import { photoUrl, mountPhotoPicker } from '../photo.js';
-import { colorAttr, themeChipsHtml, mountThemeEditor } from '../themes.js';
+import { colorAttr, themeChipsHtml, mountThemeEditor, sameTheme } from '../themes.js';
 
 const FILTER_KEY = 'modelflow_filters';
 const SORTS = [['recent', 'Plus récents'], ['name', 'Nom (A → Z)'], ['fav', 'Favoris d\'abord']];
@@ -35,6 +35,25 @@ function writeFilters(f) {
 export async function renderModels(el, openId) {
   document.title = 'Modèles — ModelFlow';
   let [models, themes, settings] = await Promise.all([api.get('models'), api.get('themes'), api.get('settings')]);
+
+  // Même nom = même couleur que dans PrepFlow (lecture seule côté PrepFlow) : un thème sans couleur adopte celle de son homologue
+  const adoptPrepflowColors = async () => {
+    try {
+      const res = await fetch('/prepflow/api/themes', { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return false;
+      const theirs = await res.json();
+      let changed = false;
+      for (const t of themes) {
+        if (t.color) continue;
+        const o = theirs.find(x => x.color && sameTheme(x.name, t.name));
+        if (!o) continue;
+        await api.put(`themes/${t.id}`, { color: o.color });
+        t.color = o.color; changed = true;
+      }
+      return changed;
+    } catch (_) { return false; }
+  };
+  if (await adoptPrepflowColors()) models = await api.get('models');
   const filters = readFilters();
   let query = '';
 

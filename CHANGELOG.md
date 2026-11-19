@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.3.0 — 19/11/2026
+
+- **Même nom, même couleur** : à l'ouverture de la liste, un thème sans couleur adopte celle du thème PrepFlow de même nom (casse et accents ignorés). Lecture seule côté PrepFlow ; une couleur déjà choisie n'est jamais modifiée. Sans effet si PrepFlow ne répond pas.
+- Aucun changement de base de données. Fonctionne avec PrepFlow 1.47.0 (suggestions de thèmes et bouton « Reprendre les thèmes »).
+
 ## v1.2.0 — 19/11/2026
 
 - **Projets PrepFlow** : la fiche d'un modèle liste les projets PrepFlow qui s'appuient sur lui (code, nom, statut, lien vers le projet). Lecture seule ; rien ne s'affiche si PrepFlow ne répond pas.
