@@ -32,7 +32,7 @@ function writeFilters(f) {
   try { localStorage.setItem(FILTER_KEY, JSON.stringify(f)); } catch (_) {}
 }
 
-export async function renderModels(el) {
+export async function renderModels(el, openId) {
   document.title = 'Modèles — ModelFlow';
   let [models, themes, settings] = await Promise.all([api.get('models'), api.get('themes'), api.get('settings')]);
   const filters = readFilters();
@@ -217,6 +217,12 @@ export async function renderModels(el) {
   // Les thèmes sélectionnés qui n'existent plus (supprimés dans Paramètres) sont retirés du filtre
   filters.themes = filters.themes.filter(id => themes.some(t => t.id === id));
   drawAll();
+  // Lien direct #/modele/12 (depuis PrepFlow) : la fiche s'ouvre sur la liste
+  if (openId) {
+    const target = models.find(m => m.id === Number(openId));
+    history.replaceState(null, '', '#/');           // un rechargement ne rouvre pas la fiche
+    if (target) openFiche(target); else toast('Ce modèle n\'existe plus dans le catalogue', 'error');
+  }
   // La zone de contenu est réutilisée par les autres vues : retirer l'écouteur en quittant la liste
   return () => el.removeEventListener('click', onClick);
 }
@@ -262,6 +268,12 @@ function openModelDialog({ model, known, settings, onSaved }) {
           </div>
           <div class="project-themes" data-themes></div>
           <label class="field"><span>Remarques</span><textarea name="notes" rows="3" maxlength="5000"></textarea></label>
+          ${model ? `<div class="mf-projects" data-projects hidden>
+            <span class="mf-projects-title">Projets PrepFlow</span>
+            <ul data-projects-list></ul>
+          </div>
+          <div><a class="btn btn-sm" href="/prepflow/#/depuis-modele/${model.id}" target="_blank" rel="noopener"
+            title="Crée un projet PrepFlow lié à ce modèle (nom, lien source, image et thèmes repris)">＋ Créer un projet PrepFlow</a></div>` : ''}
           ${model ? '<div><button type="button" class="btn btn-ghost-danger btn-sm" data-delete>Supprimer ce modèle</button></div>' : ''}
         </div>
       </div>`;
@@ -305,6 +317,22 @@ function openModelDialog({ model, known, settings, onSaved }) {
           v(body, 'folder').value = clean ? `${model.code} - ${clean}` : model.code;
           showPath();
         });
+      }
+
+      // Projets PrepFlow liés à ce modèle (lecture seule ; facultatif : rien ne s'affiche si PrepFlow ne répond pas)
+      if (model) {
+        const PSTATUS = { idee: 'Idée', preparation: 'En préparation', en_cours: 'En cours', termine: 'Terminé', archive: 'Archivé' };
+        fetch('/prepflow/api/projects?archived=1', { signal: AbortSignal.timeout(4000) })
+          .then(r => (r.ok ? r.json() : []))
+          .then(rows => {
+            const mine = rows.filter(p => p.model_id === model.id);
+            if (!mine.length || !body.isConnected) return;
+            body.querySelector('[data-projects]').hidden = false;
+            body.querySelector('[data-projects-list]').innerHTML = mine.map(p =>
+              `<li><a href="/prepflow/#/projet/${p.id}" target="_blank" rel="noopener"><span class="mf-pcode">${escapeHtml(p.code || '')}</span> ${escapeHtml(p.name)}</a>
+               <span class="mf-pstatus">${escapeHtml(PSTATUS[p.status] || '')}</span></li>`).join('');
+          })
+          .catch(() => {});
       }
 
       // Lien : ouverture, source devinée, doublon

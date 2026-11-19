@@ -421,3 +421,13 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .mf-code { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text3); }
 .mf-code strong { font-family: var(--font-mono); font-weight: 500; font-size: 14px; color: var(--text); letter-spacing: 0.04em; }
 .mf-path .link-btn + .link-btn { margin-left: 10px; }
+
+/* Projets PrepFlow liés (fiche modèle) */
+.mf-projects { font-size: 13px; }
+.mf-projects-title { display: block; color: var(--text3); font-size: 12px; margin-bottom: 4px; }
+.mf-projects ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.mf-projects li { display: flex; justify-content: space-between; gap: 10px; }
+.mf-projects a { color: var(--text); text-decoration: none; border-bottom: 0.5px solid var(--border2); }
+.mf-projects a:hover { border-color: currentColor; }
+.mf-pcode { font-family: var(--font-mono); color: var(--text2); }
+.mf-pstatus { color: var(--text3); font-size: 12px; white-space: nowrap; }

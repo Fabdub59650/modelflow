@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.2.0 — 19/11/2026
+
+- **Projets PrepFlow** : la fiche d'un modèle liste les projets PrepFlow qui s'appuient sur lui (code, nom, statut, lien vers le projet). Lecture seule ; rien ne s'affiche si PrepFlow ne répond pas.
+- **Créer un projet PrepFlow** : nouveau bouton sur la fiche (modèle existant). PrepFlow crée un projet lié au modèle, avec son nom, son lien source, son image et ses thèmes.
+- **Lien direct** `#/modele/12` : ouvre la liste avec la fiche du modèle 12 (utilisé par PrepFlow).
+- Aucun changement de base de données. Fonctionne avec PrepFlow 1.46.0 ou plus.
+
 ## v1.1.0 — 19/11/2026
 
 - **Code du modèle** : chaque fiche porte un code `M0001`, `M0002`… attribué automatiquement, non modifiable, jamais réutilisé. Il s'affiche sur la vignette et en haut de la fiche (bouton « Copier »).

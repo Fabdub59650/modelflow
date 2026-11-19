@@ -5,9 +5,10 @@ import { renderSettings } from './views/settings.js';
 import { initTheme } from './theme.js';
 import { initUpdateBadge } from './updates.js';
 
-// Routes : #/  (liste des modèles)   #/parametres
+// Routes : #/  (liste des modèles)   #/modele/12  (liste + fiche du modèle 12)   #/parametres
 const routes = [
   { re: /^#?\/?$/,         view: renderModels,   nav: 'models' },
+  { re: /^#\/modele\/(\d+)$/, view: renderModels, nav: 'models' },
   { re: /^#\/parametres$/, view: renderSettings, nav: 'settings' },
 ];
 
