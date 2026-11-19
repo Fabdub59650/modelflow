@@ -45,7 +45,7 @@ export async function renderModels(el) {
       <div class="page-actions"><button type="button" class="btn btn-primary" id="add">＋ Nouveau modèle</button></div>
     </div>
     <div class="toolbar">
-      <input type="search" id="q" class="search" placeholder="Rechercher : nom, thème, auteur, remarques…" aria-label="Rechercher un modèle" autocomplete="off">
+      <input type="search" id="q" class="search" placeholder="Rechercher : nom, code (M0012), thème, auteur…" aria-label="Rechercher un modèle" autocomplete="off">
       <select class="select" id="source" aria-label="Filtrer par source"></select>
       <select class="select" id="sort" aria-label="Trier">
         ${SORTS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}
@@ -63,7 +63,7 @@ export async function renderModels(el) {
   $('#sort').value = filters.sort;
 
   // ── Filtrage ──
-  const haystack = m => fold([m.name, m.notes, m.author, m.folder, SOURCE[m.source], ...m.themes.map(t => t.name)].filter(Boolean).join(' '));
+  const haystack = m => fold([m.code, m.name, m.notes, m.author, m.folder, SOURCE[m.source], ...m.themes.map(t => t.name)].filter(Boolean).join(' '));
   const matches = (m, { ignoreStatus = false } = {}) => {
     if (!ignoreStatus && filters.status && m.status !== filters.status) return false;
     if (filters.source && m.source !== filters.source) return false;
@@ -71,7 +71,9 @@ export async function renderModels(el) {
     if (filters.themes.length && !filters.themes.every(id => m.themes.some(t => t.id === id))) return false;
     if (query) {
       const h = haystack(m);
-      if (!fold(query).split(/\s+/).filter(Boolean).every(w => h.includes(w))) return false;
+      // Un mot « 12 », « m12 » ou « M0012 » retrouve le modèle de code M0012 ; sinon recherche dans le texte
+      const words = fold(query).split(/\s+/).filter(Boolean);
+      if (!words.every(w => h.includes(w) || (/^m?\d+$/.test(w) && Number(w.replace(/^m/, '')) === m.id))) return false;
     }
     return true;
   };
@@ -119,6 +121,7 @@ export async function renderModels(el) {
         <div class="mcard-body">
           <h3 class="mcard-name">${escapeHtml(m.name)}</h3>
           <div class="mcard-meta">
+            <span class="tag mcard-code" title="Code du modèle">${escapeHtml(m.code)}</span>
             <span class="tag">${SOURCE[m.source]}</span>
             ${m.themes.map(t => `<span class="theme-chip"${colorAttr(t.color)}>${escapeHtml(t.name)}</span>`).join('')}
           </div>
@@ -234,6 +237,8 @@ function openModelDialog({ model, known, settings, onSaved }) {
       <div class="mf-form">
         <div class="mf-photo" data-photo></div>
         <div class="mf-fields">
+          ${model ? `<div class="mf-code"><span>Code</span> <strong data-code>${escapeHtml(model.code)}</strong>
+            <button type="button" class="link-btn" data-copy-code>Copier</button></div>` : ''}
           <label class="field"><span>Nom</span><input name="name" required maxlength="150" autocomplete="off"></label>
           <div class="mf-row">
             <label class="field"><span>Source</span>
@@ -251,8 +256,9 @@ function openModelDialog({ model, known, settings, onSaved }) {
           </div>
           <label class="field"><span>Auteur / licence</span><input name="author" maxlength="150" placeholder="ex. Nom du créateur · CC BY-NC" autocomplete="off"></label>
           <div class="field"><span>Dossier de stockage</span>
-            <input name="folder" maxlength="300" placeholder="Sous-dossier, ex. Noël/Père Noël v2" autocomplete="off" aria-label="Dossier de stockage">
-            <small class="mf-path"><span data-path></span> <button type="button" class="link-btn" data-copy-path>Copier le chemin</button></small>
+            <input name="folder" maxlength="300" placeholder="${model ? 'ex. ' + escapeHtml(model.code) + ' - Nom du modèle' : 'Laissez vide : « M… - nom » sera proposé'}" autocomplete="off" aria-label="Dossier de stockage">
+            <small class="mf-path"><span data-path></span> <button type="button" class="link-btn" data-copy-path>Copier le chemin</button>
+              ${model ? '<button type="button" class="link-btn" data-suggest-folder title="Remplace le dossier par « code - nom » (à renommer ensuite dans le Finder)">Nom conseillé</button>' : ''}</small>
           </div>
           <div class="project-themes" data-themes></div>
           <label class="field"><span>Remarques</span><textarea name="notes" rows="3" maxlength="5000"></textarea></label>
@@ -289,6 +295,17 @@ function openModelDialog({ model, known, settings, onSaved }) {
         toast(ok ? 'Chemin copié' : 'Copie impossible', ok ? 'info' : 'error');
       });
       showPath();
+      if (model) {
+        body.querySelector('[data-copy-code]').addEventListener('click', async () => {
+          const ok = await copyText(model.code);
+          toast(ok ? `Code copié : ${model.code}` : 'Copie impossible', ok ? 'info' : 'error');
+        });
+        body.querySelector('[data-suggest-folder]').addEventListener('click', () => {
+          const clean = v(body, 'name').value.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80).trim();
+          v(body, 'folder').value = clean ? `${model.code} - ${clean}` : model.code;
+          showPath();
+        });
+      }
 
       // Lien : ouverture, source devinée, doublon
       const urlInput = v(body, 'source_url');

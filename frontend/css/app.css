@@ -415,3 +415,9 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   .topbar .apps-nav a { padding: 0 5px; font-size: 11px; }
   .nav-link { font-size: 14px; padding: 6px 7px; }
 }
+
+/* Code du modèle (M0001) */
+.mcard-code { color: var(--text2); }
+.mf-code { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text3); }
+.mf-code strong { font-family: var(--font-mono); font-weight: 500; font-size: 14px; color: var(--text); letter-spacing: 0.04em; }
+.mf-path .link-btn + .link-btn { margin-left: 10px; }

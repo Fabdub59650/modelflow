@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 — 19/11/2026
+
+- **Code du modèle** : chaque fiche porte un code `M0001`, `M0002`… attribué automatiquement, non modifiable, jamais réutilisé. Il s'affiche sur la vignette et en haut de la fiche (bouton « Copier »).
+- **Dossier de stockage** : à la création, si le dossier est laissé vide, il est proposé sous la forme `M0001 - Nom du modèle` (caractères interdits retirés). Sur une fiche existante, le lien « Nom conseillé » remplit le champ de la même façon. Le chemin complet reste calculé à partir de la racine de stockage.
+- **Recherche par code** : `M0012`, `m12` ou simplement `12` retrouvent le modèle ; le code est aussi cherché dans le texte des fiches.
+
 ## v1.0.1 — 19/11/2026
 
 - **Téléphone** : la barre du haut passe sur deux lignes ; le menu « Paramètres » n'est plus tronqué (« PARA… »).

@@ -6,6 +6,8 @@
  *   POST   /api/models                 créer ({ name, … })
  *   PUT    /api/models/:id             modifier (champs partiels ; `themes` = liste de noms)
  *   DELETE /api/models/:id             supprimer (image et thèmes liés compris)
+ * Chaque modèle a un code « M0001 » (déduit de son identifiant, non modifiable). À la création, si le
+ * dossier est vide, il prend la forme « M0001 - Nom ».
  * L'image se gère dans routes/photos.js (/api/models/:id/photo).
  *
  * Les fichiers 3D ne sont pas stockés : `folder` est un sous-dossier relatif à la racine de
@@ -79,7 +81,17 @@ async function readBody(body) {
   return { cols, themes };
 }
 
-const SELECT = `SELECT m.id, m.name, m.source, m.source_url, m.author, m.folder, m.notes, m.status, m.favorite,
+// Code du modèle : « M » + numéro sur 4 chiffres (M0001). Déduit de l'identifiant : stable, jamais réattribué.
+const CODE_SQL = "CONCAT('M', LPAD(m.id, 4, '0'))";
+
+// Nom de dossier conseillé : « M0001 - Nom du modèle » (sans caractères interdits dans un nom de dossier)
+function suggestedFolder(id, name) {
+  const code = 'M' + String(id).padStart(4, '0');
+  const clean = String(name || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80).trim();
+  return clean ? `${code} - ${clean}` : code;
+}
+
+const SELECT = `SELECT m.id, ${CODE_SQL} AS code, m.name, m.source, m.source_url, m.author, m.folder, m.notes, m.status, m.favorite,
                        m.created_at, m.updated_at, ph.version AS photo_v
                   FROM models m LEFT JOIN model_photos ph ON ph.model_id = m.id`;
 
@@ -129,6 +141,10 @@ router.post('/', async (req, res) => {
     const [r] = await db.query(
       `INSERT INTO models (${keys.map(k => `\`${k}\``).join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`,
       keys.map(k => cols[k]));
+    // Dossier non renseigné : « M0001 - Nom » est proposé d'office (le code fait le lien fiche ↔ dossier)
+    if (!cols.folder) {
+      await db.query('UPDATE models SET folder=? WHERE id=?', [suggestedFolder(r.insertId, cols.name), r.insertId]);
+    }
     if (themes && themes.length) await setModelThemes(r.insertId, themes);
     res.status(201).json(await fetchOne(r.insertId));
   } catch (e) { sendError(res, e); }
@@ -160,3 +176,4 @@ router.delete('/:id', async (req, res) => {
 module.exports = router;
 module.exports.normalizeUrl = normalizeUrl;
 module.exports.relativeFolder = relativeFolder;
+module.exports.suggestedFolder = suggestedFolder;
