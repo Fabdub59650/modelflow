@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.1 — 19/11/2026
+
+- **Téléphone** : la barre du haut passe sur deux lignes ; le menu « Paramètres » n'est plus tronqué (« PARA… »).
+
 ## v1.0.0 — 19/11/2026
 
 Première version : un catalogue de modèles 3D, simple et indépendant de FilaFlow et de PrepFlow.

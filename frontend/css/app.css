@@ -173,11 +173,11 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
   .figure:nth-child(n+3) { border-top: 0.5px solid var(--border); }
   .panels { grid-template-columns: 1fr; }
 }
-/* Téléphone : la barre du haut reste sur une ligne ; les menus défilent sur le côté */
+/* Téléphone : la barre passe sur deux lignes (logo + applis + thème, puis les menus en pleine largeur) */
 @media (max-width: 700px) {
-  .topbar { gap: 8px; padding: 0 10px; }
-  .nav { flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-  .nav::-webkit-scrollbar { display: none; }
+  .topbar { gap: 4px 8px; padding: 6px 10px; height: auto; flex-wrap: wrap; }
+  .topbar-end { order: 2; margin-left: auto; }
+  .nav { order: 3; flex: 1 0 100%; min-width: 0; }
   .nav-link { padding: 6px 9px; font-size: 15px; white-space: nowrap; position: relative; }
   .topbar-end { margin-left: 0; gap: 6px; flex: none; }
   .topbar-end .btn { padding: 0 8px; font-size: 11px; }

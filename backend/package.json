@@ -1,6 +1,6 @@
 {
   "name": "modelflow",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ModelFlow — Catalogue de modèles 3D (liste, photos, thèmes, dossier de stockage)",
   "main": "server.js",
   "private": true,
