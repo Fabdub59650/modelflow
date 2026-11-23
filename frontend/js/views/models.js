@@ -6,7 +6,7 @@ import { photoUrl, mountPhotoPicker } from '../photo.js';
 import { colorAttr, themeChipsHtml, mountThemeEditor, sameTheme } from '../themes.js';
 
 const FILTER_KEY = 'modelflow_filters';
-const SORTS = [['recent', 'Plus récents'], ['name', 'Nom (A → Z)'], ['fav', 'Favoris d\'abord']];
+const SORTS = [['recent', 'Plus récents'], ['name', 'Nom (A → Z)'], ['fav', 'Favoris d\'abord'], ['rating', 'Mieux notés']];
 const collator = new Intl.Collator('fr', { sensitivity: 'base', numeric: true });
 
 const CUBE = `<svg viewBox="0 0 32 32" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M16 4.5 26 10v12l-10 5.5L6 22V10z"/><path d="M6.5 10.3 16 16l9.5-5.7M16 16v11"/></svg>`;
@@ -100,6 +100,7 @@ export async function renderModels(el, openId) {
     const out = [...list];            // l'ordre du serveur est « plus récents d'abord »
     if (filters.sort === 'name') out.sort((a, b) => collator.compare(a.name, b.name));
     else if (filters.sort === 'fav') out.sort((a, b) => (b.favorite - a.favorite));   // tri stable
+    else if (filters.sort === 'rating') out.sort((a, b) => ((b.rating || 0) - (a.rating || 0)));   // sans note en dernier
     return out;
   };
   const anyFilter = () => !!(query || filters.status || filters.source || filters.fav || filters.themes.length);
@@ -142,6 +143,8 @@ export async function renderModels(el, openId) {
           <div class="mcard-meta">
             <span class="tag mcard-code" title="Code du modèle">${escapeHtml(m.code)}</span>
             <span class="tag">${SOURCE[m.source]}</span>
+            ${m.pieces > 1 ? `<span class="tag mcard-pieces" title="Nombre de pièces du modèle">${m.pieces} pièces</span>` : ''}
+            ${m.rating ? `<span class="tag mcard-rating" title="Note : ${m.rating} sur 5">${m.rating}/5</span>` : ''}
             ${m.themes.map(t => `<span class="theme-chip"${colorAttr(t.color)}>${escapeHtml(t.name)}</span>`).join('')}
           </div>
         </div>
@@ -272,6 +275,20 @@ function openModelDialog({ model, known, settings, onSaved }) {
               <select class="select" name="status">${STATUS_KEYS.map(k => `<option value="${k}">${STATUS[k]}</option>`).join('')}</select></label>
             <label class="toggle mf-fav"><input type="checkbox" name="favorite"> ${STAR} Favori</label>
           </div>
+          <div class="mf-row mf-extra">
+            <label class="field mf-pieces"><span>Pièces</span>
+              <input name="pieces" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="1" autocomplete="off"></label>
+            <div class="field mf-dims"><span>Dimensions (mm)</span>
+              <span class="mf-dimrow">
+                <input name="size_x" inputmode="decimal" maxlength="7" placeholder="L" aria-label="Longueur en mm" autocomplete="off"><i>×</i>
+                <input name="size_y" inputmode="decimal" maxlength="7" placeholder="l" aria-label="Largeur en mm" autocomplete="off"><i>×</i>
+                <input name="size_z" inputmode="decimal" maxlength="7" placeholder="H" aria-label="Hauteur en mm" autocomplete="off">
+              </span></div>
+            <div class="field mf-rating"><span>Note</span>
+              <span class="mf-stars" data-rating role="group" aria-label="Note de 1 à 5">
+                ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-star="${n}" aria-label="${n} sur 5" title="${n} sur 5">${STAR}</button>`).join('')}
+              </span></div>
+          </div>
           <div class="field"><span>Lien source</span>
             <span class="mf-inline">
               <input name="source_url" type="text" inputmode="url" maxlength="500" placeholder="https://makerworld.com/…" autocomplete="off" aria-label="Lien source">
@@ -298,11 +315,28 @@ function openModelDialog({ model, known, settings, onSaved }) {
       </div>`;
 
       // Valeurs de départ
-      const m = model || { name: '', source: 'autre', status: 'catalogue', favorite: false, source_url: '', author: '', folder: '', notes: '', themes: [] };
+      const m = model || { name: '', source: 'autre', status: 'catalogue', favorite: false, pieces: null, size_x: null, size_y: null, size_z: null, rating: null, source_url: '', author: '', folder: '', notes: '', themes: [] };
       v(body, 'name').value = m.name;
       v(body, 'source').value = m.source;
       v(body, 'status').value = m.status;
       v(body, 'favorite').checked = !!m.favorite;
+      v(body, 'pieces').value = m.pieces ?? '';
+      ['size_x', 'size_y', 'size_z'].forEach(k => { v(body, k).value = m[k] ?? ''; });
+      // Note : un clic sur l'étoile choisie une seconde fois efface la note
+      let rating = m.rating || 0;
+      const stars = [...body.querySelectorAll('[data-star]')];
+      const drawStars = () => stars.forEach(b => {
+        const on = Number(b.dataset.star) <= rating;
+        b.classList.toggle('is-on', on);
+        b.setAttribute('aria-pressed', String(Number(b.dataset.star) === rating));
+      });
+      stars.forEach(b => b.addEventListener('click', () => {
+        const n = Number(b.dataset.star);
+        rating = rating === n ? 0 : n;
+        drawStars();
+      }));
+      body._getRating = () => rating;
+      drawStars();
       v(body, 'source_url').value = m.source_url || '';
       v(body, 'author').value = m.author || '';
       v(body, 'folder').value = m.folder || '';
@@ -398,6 +432,11 @@ function openModelDialog({ model, known, settings, onSaved }) {
         source: v(body, 'source').value,
         status: v(body, 'status').value,
         favorite: v(body, 'favorite').checked,
+        pieces: v(body, 'pieces').value,
+        size_x: v(body, 'size_x').value,
+        size_y: v(body, 'size_y').value,
+        size_z: v(body, 'size_z').value,
+        rating: body._getRating() || '',
         source_url: v(body, 'source_url').value,
         author: v(body, 'author').value,
         folder: v(body, 'folder').value,

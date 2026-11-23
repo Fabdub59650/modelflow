@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.4.0 — 23/11/2026
+
+- **Pièces** : nombre de pièces du modèle (1 à 9999, facultatif). La carte affiche « 12 pièces » seulement au-dessus de 1.
+- **Dimensions** : longueur × largeur × hauteur en mm (virgule ou point). Les trois valeurs ensemble, ou aucune. Visibles dans la fiche.
+- **Note** : de 1 à 5 étoiles dans la fiche (un second clic sur l'étoile choisie efface la note). La carte affiche « 4/5 ». Nouveau tri « Mieux notés ».
+- Base de données : cinq colonnes facultatives ajoutées à `models` (ajoutées automatiquement par `patch.sh`, sans perte). Aucune autre application n'est concernée.
+
 ## v1.3.0 — 19/11/2026
 
 - **Même nom, même couleur** : à l'ouverture de la liste, un thème sans couleur adopte celle du thème PrepFlow de même nom (casse et accents ignorés). Lecture seule côté PrepFlow ; une couleur déjà choisie n'est jamais modifiée. Sans effet si PrepFlow ne répond pas.

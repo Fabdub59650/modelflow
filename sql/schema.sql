@@ -62,5 +62,13 @@ CREATE TABLE IF NOT EXISTS `model_photos` (
   CONSTRAINT `fk_mp_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Colonnes ajoutées après la 1.0 (rejouable : IF NOT EXISTS)
+--   pieces : nombre de pièces du modèle (1.4.0) · size_x/y/z : dimensions en mm (L × l × H) · rating : note de 1 à 5
+ALTER TABLE `models` ADD COLUMN IF NOT EXISTS `pieces` smallint(5) unsigned DEFAULT NULL AFTER `favorite`;
+ALTER TABLE `models` ADD COLUMN IF NOT EXISTS `size_x` decimal(6,1) DEFAULT NULL AFTER `pieces`;
+ALTER TABLE `models` ADD COLUMN IF NOT EXISTS `size_y` decimal(6,1) DEFAULT NULL AFTER `size_x`;
+ALTER TABLE `models` ADD COLUMN IF NOT EXISTS `size_z` decimal(6,1) DEFAULT NULL AFTER `size_y`;
+ALTER TABLE `models` ADD COLUMN IF NOT EXISTS `rating` tinyint(1) unsigned DEFAULT NULL AFTER `size_z`;
+
 -- Valeurs par défaut (INSERT IGNORE : une valeur modifiée n'est jamais écrasée)
 INSERT IGNORE INTO `settings` (key_name, value) VALUES ('storage_root', '/Volumes/Datas/Impressions 3D/B - Bibliothèque');

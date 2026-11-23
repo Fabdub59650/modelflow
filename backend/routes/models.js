@@ -47,6 +47,15 @@ function text(v, max, label) {
   return s || null;
 }
 
+// Nombre décimal positif (virgule ou point) ; vide = null
+function positive(v, max, label) {
+  const t = String(v ?? '').trim().replace(',', '.');
+  if (!t) return null;
+  const n = Number(t);
+  if (!Number.isFinite(n) || n <= 0 || n > max) throw bad(`${label} : un nombre entre 0 et ${max}`);
+  return Math.round(n * 10) / 10;
+}
+
 // Valide les champs reçus ; renvoie { cols: { colonne: valeur }, themes: [noms] | undefined }
 async function readBody(body) {
   const b = body || {};
@@ -77,6 +86,29 @@ async function readBody(body) {
     cols.status = b.status;
   }
   if ('favorite' in b) cols.favorite = b.favorite ? 1 : 0;
+  if ('pieces' in b) {
+    const t = String(b.pieces ?? '').trim();
+    if (!t) cols.pieces = null;
+    else {
+      const n = Number(t);
+      if (!Number.isInteger(n) || n < 1 || n > 9999) throw bad('Pièces : un nombre entier entre 1 et 9999');
+      cols.pieces = n;
+    }
+  }
+  if ('size_x' in b || 'size_y' in b || 'size_z' in b) {
+    const dims = ['size_x', 'size_y', 'size_z'].map((k, i) => positive(b[k], 9999.9, ['Longueur', 'Largeur', 'Hauteur'][i]));
+    if (dims.some(d => d === null) && dims.some(d => d !== null)) throw bad('Dimensions : renseignez les trois valeurs (longueur, largeur, hauteur) ou aucune');
+    [cols.size_x, cols.size_y, cols.size_z] = dims;
+  }
+  if ('rating' in b) {
+    const t = String(b.rating ?? '').trim();
+    if (!t) cols.rating = null;
+    else {
+      const n = Number(t);
+      if (!Number.isInteger(n) || n < 1 || n > 5) throw bad('Note : un entier de 1 à 5');
+      cols.rating = n;
+    }
+  }
   const themes = 'themes' in b ? parseThemeNames(b.themes) : undefined;
   return { cols, themes };
 }
@@ -92,7 +124,7 @@ function suggestedFolder(id, name) {
 }
 
 const SELECT = `SELECT m.id, ${CODE_SQL} AS code, m.name, m.source, m.source_url, m.author, m.folder, m.notes, m.status, m.favorite,
-                       m.created_at, m.updated_at, ph.version AS photo_v
+                       m.pieces, m.size_x, m.size_y, m.size_z, m.rating, m.created_at, m.updated_at, ph.version AS photo_v
                   FROM models m LEFT JOIN model_photos ph ON ph.model_id = m.id`;
 
 async function withThemes(rows) {
