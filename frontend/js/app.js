@@ -49,3 +49,13 @@ async function init() {
 }
 
 init();
+
+// Hauteur réelle de la barre du haut (2 lignes sur téléphone) : l'entête de page s'y accroche
+{
+  const tb = document.querySelector('.topbar');
+  if (tb) {
+    const setH = () => document.documentElement.style.setProperty('--topbar-h', tb.offsetHeight + 'px');
+    setH();
+    if (window.ResizeObserver) new ResizeObserver(setH).observe(tb);
+  }
+}

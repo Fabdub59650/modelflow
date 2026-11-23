@@ -25,22 +25,43 @@ export function themeChipsHtml(themes, active = new Set()) {
  */
 export function mountThemeEditor(box, initial, known) {
   let themes = (initial || []).map(t => ({ name: t.name, color: t.color || null }));
+  let active = -1;           // suggestion surlignée au clavier
 
   box.innerHTML = `
     <span class="theme-label">Thèmes</span>
     <span class="theme-chips"></span>
-    <input type="text" class="theme-input" list="theme-options" maxlength="40" autocomplete="off"
-           placeholder="Ajouter un thème…" aria-label="Ajouter un thème">
-    <datalist id="theme-options"></datalist>`;
+    <span class="theme-add">
+      <input type="text" class="theme-input" maxlength="40" autocomplete="off" role="combobox" aria-autocomplete="list"
+             aria-expanded="false" placeholder="Ajouter un thème…" aria-label="Ajouter un thème">
+      <ul class="theme-suggest" role="listbox" hidden></ul>
+    </span>`;
   const chipsEl = box.querySelector('.theme-chips');
   const input = box.querySelector('.theme-input');
-  const options = box.querySelector('#theme-options');
+  const list = box.querySelector('.theme-suggest');
 
-  const draw = () => {
+  const drawChips = () => {
     chipsEl.innerHTML = themes.map((t, i) => `<span class="theme-chip"${colorAttr(t.color)}>${escapeHtml(t.name)}<button type="button"
       class="theme-remove" data-remove="${i}" aria-label="Retirer le thème ${escapeHtml(t.name)}">×</button></span>`).join('');
-    options.innerHTML = known.filter(k => !themes.some(t => sameTheme(t.name, k.name)))
-      .map(k => `<option value="${escapeHtml(k.name)}"></option>`).join('');
+  };
+
+  // Suggestions : thèmes existants pas encore sur la fiche, filtrés par ce qui est tapé (casse et accents ignorés)
+  const candidates = () => {
+    const q = fold(input.value.trim());
+    return known.filter(k => !themes.some(t => sameTheme(t.name, k.name)) && (!q || fold(k.name).includes(q))).slice(0, 8);
+  };
+  const hideSuggest = () => { list.hidden = true; input.setAttribute('aria-expanded', 'false'); active = -1; };
+  const showSuggest = () => {
+    const c = candidates();
+    if (!c.length) { hideSuggest(); return; }
+    active = Math.min(active, c.length - 1);
+    list.innerHTML = c.map((k, i) => `<li role="option" data-name="${escapeHtml(k.name)}" class="${i === active ? 'is-active' : ''}"
+      aria-selected="${i === active}">${escapeHtml(k.name)}</li>`).join('');
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+    // Pas assez de place sous le champ (bas de la fiche) : la liste s'ouvre vers le haut
+    list.classList.remove('is-up');
+    const room = (box.closest('dialog') || document.documentElement).getBoundingClientRect().bottom;
+    if (list.getBoundingClientRect().bottom > room - 8) list.classList.add('is-up');
   };
 
   const add = raw => {
@@ -51,24 +72,50 @@ export function mountThemeEditor(box, initial, known) {
     const name = k ? k.name : typed;
     if (themes.some(t => sameTheme(t.name, name))) return;
     themes.push({ name, color: k ? k.color : null });
-    draw();
+    drawChips();
   };
   const commit = () => { const v = input.value; input.value = ''; add(v); };
 
-  // Entrée et virgule valident le texte saisi (Entrée ne doit pas enregistrer la fiche) ;
-  // le choix dans la liste de suggestions passe par « change »
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); commit(); }
+  // Un clic sur une suggestion l'ajoute tout de suite (mousedown ne retire pas le focus du champ)
+  list.addEventListener('mousedown', e => e.preventDefault());
+  list.addEventListener('click', e => {
+    const li = e.target.closest('[data-name]');
+    if (!li) return;
+    input.value = '';
+    add(li.dataset.name);
+    input.focus();
+    showSuggest();
   });
-  input.addEventListener('change', commit);
+  input.addEventListener('focus', showSuggest);
+  input.addEventListener('input', () => { active = -1; showSuggest(); });
+  input.addEventListener('blur', () => { hideSuggest(); commit(); });
+  input.addEventListener('keydown', e => {
+    const c = candidates();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!c.length) return;
+      e.preventDefault();
+      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + c.length) % c.length;
+      showSuggest();
+    } else if (e.key === 'Enter' || e.key === ',') {
+      // Entrée ne doit pas enregistrer la fiche : elle ajoute la suggestion surlignée, sinon le texte saisi
+      e.preventDefault();
+      if (e.key === 'Enter' && active >= 0 && c[active]) { input.value = ''; add(c[active].name); }
+      else commit();
+      active = -1;
+      showSuggest();
+    } else if (e.key === 'Escape' && !list.hidden) {
+      e.stopPropagation(); e.preventDefault();      // referme la liste sans fermer la fiche
+      hideSuggest();
+    }
+  });
   chipsEl.addEventListener('click', e => {
     const btn = e.target.closest('[data-remove]');
     if (!btn) return;
     themes.splice(Number(btn.dataset.remove), 1);
-    draw();
+    drawChips();
   });
 
-  draw();
+  drawChips();
   return {
     /** Noms des thèmes (le texte en cours de saisie est pris en compte) */
     names() { commit(); return themes.map(t => t.name); },

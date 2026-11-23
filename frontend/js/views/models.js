@@ -15,7 +15,7 @@ const LINK_ICON = `<svg viewBox="0 0 20 20" width="15" height="15" fill="none" s
 const COPY_ICON = `<svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="9" height="9" rx="1.5"/><path d="M13 7V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h2"/></svg>`;
 
 // ── Filtres (mémorisés dans le navigateur, sauf la recherche) ──────
-const DEFAULT_FILTERS = { status: '', source: '', fav: false, themes: [], sort: 'recent' };
+const DEFAULT_FILTERS = { status: '', source: '', fav: false, themes: [], sort: 'recent', view: 'grid' };
 function readFilters() {
   try {
     const f = JSON.parse(localStorage.getItem(FILTER_KEY) || 'null') || {};
@@ -25,6 +25,7 @@ function readFilters() {
       fav: !!f.fav,
       themes: Array.isArray(f.themes) ? f.themes.filter(Number.isInteger) : [],
       sort: SORTS.some(([k]) => k === f.sort) ? f.sort : 'recent',
+      view: f.view === 'list' ? 'list' : 'grid',      // affichage : vignettes ou liste
     };
   } catch (_) { return { ...DEFAULT_FILTERS }; }
 }
@@ -58,7 +59,7 @@ export async function renderModels(el, openId) {
   let query = '';
 
   el.innerHTML = `
-    <div class="page-head">
+    <div class="page-head page-head-sticky">
       <h1 class="page-title">Modèles</h1>
       <span class="muted" id="count" aria-live="polite"></span>
       <div class="page-actions"><button type="button" class="btn btn-primary" id="add">＋ Nouveau modèle</button></div>
@@ -69,6 +70,10 @@ export async function renderModels(el, openId) {
       <select class="select" id="sort" aria-label="Trier">
         ${SORTS.map(([k, l]) => `<option value="${k}">${l}</option>`).join('')}
       </select>
+      <div class="seg" role="group" aria-label="Affichage">
+        <button type="button" class="seg-btn" data-view="grid" aria-pressed="false">Vignettes</button>
+        <button type="button" class="seg-btn" data-view="list" aria-pressed="false">Liste</button>
+      </div>
       <button type="button" class="theme-chip is-btn" id="fav-filter" aria-pressed="false" title="Ne montrer que les favoris">${STAR} Favoris<span class="theme-count"></span></button>
     </div>
     <div class="theme-filter" id="status-row"></div>
@@ -158,6 +163,31 @@ export async function renderModels(el, openId) {
     </article>`;
   };
 
+  const mm = v => Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+  const rowHtml = m => {
+    const img = photoUrl(m);
+    const path = m.folder ? fullPath(settings.storage_root, m.folder) : '';
+    const dims = m.size_x != null && m.size_y != null && m.size_z != null ? `${mm(m.size_x)} × ${mm(m.size_y)} × ${mm(m.size_z)}` : '';
+    return `
+    <tr class="mrow" data-id="${m.id}">
+      <td class="c-fav"><button type="button" class="mrow-fav ${m.favorite ? 'is-on' : ''}" data-fav aria-pressed="${m.favorite}"
+        title="${m.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}" aria-label="${m.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}">${STAR}</button></td>
+      <td class="c-img"><span class="mrow-img">${img ? `<img src="${img}" alt="" loading="lazy" decoding="async">` : CUBE}</span></td>
+      <td><span class="tag mcard-code">${escapeHtml(m.code)}</span></td>
+      <td class="c-name"><button type="button" class="mrow-name" data-open aria-label="Ouvrir la fiche « ${escapeHtml(m.name)} »">${escapeHtml(m.name)}</button></td>
+      <td><span class="pill pill-${m.status}">${STATUS[m.status]}</span></td>
+      <td class="num c-pcs">${m.pieces || ''}</td>
+      <td class="c-dim">${dims}</td>
+      <td class="num c-note">${m.rating ? `${m.rating}/5` : ''}</td>
+      <td class="c-thm">${m.themes.map(t => `<span class="theme-chip"${colorAttr(t.color)}>${escapeHtml(t.name)}</span>`).join('')}</td>
+      <td class="c-src">${SOURCE[m.source]}</td>
+      <td class="c-act"><span class="mrow-actions">
+        ${m.source_url ? `<a class="icon-btn" href="${escapeHtml(m.source_url)}" target="_blank" rel="noopener noreferrer" title="Ouvrir le lien source" aria-label="Ouvrir le lien source">${LINK_ICON}</a>` : ''}
+        ${path ? `<button type="button" class="icon-btn" data-copy title="Copier le chemin du dossier : ${escapeHtml(path)}" aria-label="Copier le chemin du dossier">${COPY_ICON}</button>` : ''}
+      </span></td>
+    </tr>`;
+  };
+
   const drawGrid = () => {
     const shown = sorted(models.filter(m => matches(m)));
     $('#count').textContent = anyFilter()
@@ -173,11 +203,18 @@ export async function renderModels(el, openId) {
       box.innerHTML = `<div class="empty-state"><p class="empty-title">Aucun modèle ne correspond</p>
         <button type="button" class="btn" data-reset>Effacer les filtres</button></div>`;
     } else {
-      box.innerHTML = `<div class="mgrid">${shown.map(cardHtml).join('')}</div>`;
+      box.innerHTML = filters.view === 'list'
+        ? `<div class="table-wrap"><table class="list-table mlist"><thead><tr>
+            <th class="c-fav"><span class="sr-only">Favori</span></th><th class="c-img"><span class="sr-only">Image</span></th>
+            <th>Code</th><th>Nom</th><th>Statut</th><th class="num c-pcs">Pièces</th><th class="c-dim">Dimensions (mm)</th><th class="num c-note">Note</th>
+            <th class="c-thm">Thèmes</th><th class="c-src">Source</th><th class="c-act"><span class="sr-only">Actions</span></th>
+          </tr></thead><tbody>${shown.map(rowHtml).join('')}</tbody></table></div>`
+        : `<div class="mgrid">${shown.map(cardHtml).join('')}</div>`;
     }
   };
 
-  const drawAll = () => { drawStatus(); drawThemes(); drawGrid(); };
+  const drawView = () => el.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === filters.view)));
+  const drawAll = () => { drawStatus(); drawThemes(); drawView(); drawGrid(); };
   const save = () => writeFilters(filters);
 
   const reload = async () => {
@@ -215,7 +252,10 @@ export async function renderModels(el, openId) {
     if (e.target.closest('[data-reset]')) { resetFilters(); return; }
     if (e.target.closest('[data-add]')) { openFiche(null); return; }
 
-    const card = e.target.closest('.mcard');
+    const vw = e.target.closest('[data-view]');
+    if (vw) { filters.view = vw.dataset.view; save(); drawAll(); return; }
+
+    const card = e.target.closest('.mcard, .mrow');
     if (!card) return;
     const m = models.find(x => x.id === Number(card.dataset.id));
     if (!m) return;
@@ -232,7 +272,8 @@ export async function renderModels(el, openId) {
       toast(ok ? `Chemin copié : ${path}` : 'Copie impossible : sélectionnez le chemin à la main', ok ? 'info' : 'error');
       return;
     }
-    if (e.target.closest('[data-open]')) openFiche(m);
+    // Vignette : bouton d'ouverture ; liste : un clic n'importe où sur la ligne (hors lien et boutons)
+    if (e.target.closest('[data-open]') || (card.matches('.mrow') && !e.target.closest('a, button'))) openFiche(m);
   };
   el.addEventListener('click', onClick);
 

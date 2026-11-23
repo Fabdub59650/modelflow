@@ -342,6 +342,61 @@ textarea { width: 100%; padding: 8px 10px; resize: vertical; line-height: 1.5; }
 .theme-filter .link-btn { margin-top: 0; margin-left: 4px; }
 .theme-chip.is-btn.is-active::before { content: '✓'; font-size: 10px; margin-right: 1px; }
 
+/* Entête de la liste des modèles : reste visible sous la barre du haut quand on descend */
+.page-head-sticky {
+  position: sticky; top: var(--topbar-h, 56px); z-index: 15;
+  background: var(--bg); padding: 10px 0; margin: -10px 0 8px; border-bottom: 0.5px solid var(--border);
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Bascule Vignettes / Liste */
+.seg { display: inline-flex; border: 0.5px solid var(--border2); border-radius: var(--radius); overflow: hidden; }
+.seg-btn {
+  height: 32px; padding: 0 12px; font: inherit; font-size: 12px; color: var(--text2);
+  background: var(--bg); border: 0; cursor: pointer;
+}
+.seg-btn + .seg-btn { border-left: 0.5px solid var(--border2); }
+.seg-btn:hover { background: var(--bg3); color: var(--text); }
+.seg-btn[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent); }
+
+/* Mode liste */
+.mlist { margin-top: 0; }
+.mlist td { padding: 6px 10px; }
+.mlist th { padding: 10px 10px; }
+.mlist .c-fav, .mlist .c-img { width: 1%; padding-right: 0; }
+.mlist .c-act { width: 1%; white-space: nowrap; }
+.mrow-img { display: grid; place-items: center; width: 40px; height: 30px; border-radius: 4px; overflow: hidden; background: var(--bg-deep); color: var(--text3); }
+.mrow-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mrow-img svg { width: 20px; height: 20px; }
+.mrow-fav { width: 26px; height: 26px; padding: 0; font-size: 16px; line-height: 1; color: var(--text3); background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.mrow-fav:hover { background: var(--bg3); }
+.mrow-fav.is-on { color: #FFC83D; }
+.mrow-name { padding: 0; background: none; border: 0; font: inherit; font-weight: 600; color: var(--text); text-align: left; cursor: pointer; }
+.mrow-actions { display: inline-flex; gap: 2px; }
+.mrow-actions a.icon-btn { text-decoration: none; }
+.mlist .c-thm { max-width: 260px; }
+.mlist .c-thm .theme-chip { height: 18px; padding: 0 7px; font-size: 11px; margin: 1px 4px 1px 0; }
+@media (max-width: 1100px) { .mlist .c-src { display: none; } }
+@media (max-width: 700px) {
+  .mlist .c-dim, .mlist .c-thm, .mlist .c-src, .mlist .c-pcs, .mlist .c-note { display: none; }
+  .page-head-sticky { flex-wrap: nowrap; gap: 10px; }
+  .page-head-sticky .page-title { font-size: 22px; }
+  .page-head-sticky .muted { white-space: nowrap; }
+}
+@media (max-width: 480px) { .mlist .c-img { display: none; } }
+
+/* Suggestions de thèmes de la fiche */
+.theme-add { position: relative; display: inline-block; }
+.theme-suggest {
+  position: absolute; left: 0; top: 100%; margin: 4px 0 0; padding: 4px; min-width: 200px; max-height: 220px; overflow-y: auto;
+  list-style: none; background: var(--bg2); border: 0.5px solid var(--border2); border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35); z-index: 30;
+}
+.theme-suggest[hidden] { display: none; }
+.theme-suggest.is-up { top: auto; bottom: 100%; margin: 0 0 4px; }
+.theme-suggest li { padding: 6px 10px; font-size: 13px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+.theme-suggest li:hover, .theme-suggest li.is-active { background: var(--bg3); }
+
 /* Grille de vignettes */
 .mgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; margin-top: 14px; }
 .mcard {

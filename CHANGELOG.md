@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0 — 23/11/2026
+
+- **Mode liste** en plus des vignettes : un bouton Vignettes / Liste à côté du tri (choix mémorisé). Une ligne par modèle : favori, miniature, code, nom, statut, pièces, dimensions, note, thèmes, source et icônes lien / copier le chemin. Un clic sur la ligne ouvre la fiche. La recherche, les filtres et le tri sont communs aux deux modes. Sur téléphone, les colonnes secondaires sont masquées.
+- **Entête fixe** : la ligne « Modèles » avec le bouton « Nouveau modèle » reste visible sous la barre du haut quand on descend dans la liste (y compris sur téléphone, où la barre fait deux lignes).
+- **Thèmes de la fiche** : la liste de suggestions du navigateur, qui pouvait ignorer le choix, est remplacée par une liste intégrée. Elle s'ouvre dès qu'on touche le champ, se filtre à la frappe, un clic ajoute le thème immédiatement ; flèches + Entrée au clavier, Échap referme la liste sans fermer la fiche.
+
 ## v1.4.0 — 23/11/2026
 
 - **Pièces** : nombre de pièces du modèle (1 à 9999, facultatif). La carte affiche « 12 pièces » seulement au-dessus de 1.
